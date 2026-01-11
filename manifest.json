@@ -1,0 +1,10 @@
+{
+  "Name": "NPC Quest Tracker",
+  "Author": "Scott Mencer",
+  "Version": "2.0.0",
+  "Description": "Advanced NPC and farmer tracking with quest markers and multiplayer support. Features dynamic NPC discovery, all quest types, and robust positioning.",
+  "UniqueID": "ScottMencer.NPCQuestTracker",
+  "EntryDll": "NPCQuestTracker.dll",
+  "MinimumApiVersion": "3.0.0",
+  "UpdateKeys": []
+}
