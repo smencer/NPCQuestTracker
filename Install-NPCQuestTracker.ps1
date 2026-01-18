@@ -138,10 +138,11 @@ if (-not $StardewPath) {
 Write-Host "Using Stardew Valley installation at: $StardewPath" -ForegroundColor Green
 Write-Host ""
 
-# Create temp directory
-$tempDir = Join-Path $env:TEMP "NPCQuestTracker_Install_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
-New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
-Write-Host "Created temporary directory: $tempDir" -ForegroundColor Gray
+# Create working directory
+# Note: Cannot use $env:TEMP because SMAPI installer rejects paths containing "TEMP"
+$workDir = Join-Path $env:USERPROFILE ".npcquesttracker_install_$(Get-Date -Format 'yyyyMMdd_HHmmss')"
+New-Item -ItemType Directory -Path $workDir -Force | Out-Null
+Write-Host "Created working directory: $workDir" -ForegroundColor Gray
 Write-Host ""
 
 try {
@@ -152,7 +153,7 @@ try {
     Write-Host ""
 
     Write-Host "    Downloading SMAPI $($smapiRelease.Version)..." -ForegroundColor Cyan
-    $smapiZipPath = Join-Path $tempDir "SMAPI-installer.zip"
+    $smapiZipPath = Join-Path $workDir "SMAPI-installer.zip"
 
     try {
         $ProgressPreference = 'SilentlyContinue'
@@ -167,7 +168,7 @@ try {
 
     # Step 2: Extract SMAPI
     Write-Host "[2/6] Extracting SMAPI installer..." -ForegroundColor Cyan
-    $smapiExtractPath = Join-Path $tempDir "SMAPI"
+    $smapiExtractPath = Join-Path $workDir "SMAPI"
     try {
         # Remove destination if it exists to ensure clean extraction
         if (Test-Path $smapiExtractPath) {
@@ -274,7 +275,7 @@ try {
     }
 
     if (-not $skipModInstall) {
-        $modZipPath = Join-Path $tempDir "NPCQuestTracker.zip"
+        $modZipPath = Join-Path $workDir "NPCQuestTracker.zip"
 
         try {
             $ProgressPreference = 'SilentlyContinue'
@@ -374,10 +375,10 @@ try {
     # Cleanup
     Write-Host "Cleaning up temporary files..." -ForegroundColor Gray
     try {
-        Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path $workDir -Recurse -Force -ErrorAction SilentlyContinue
         Write-Host "Cleanup completed." -ForegroundColor Gray
     } catch {
-        Write-Host "Could not remove temporary directory: $tempDir" -ForegroundColor Yellow
+        Write-Host "Could not remove temporary directory: $workDir" -ForegroundColor Yellow
         Write-Host "You may delete it manually." -ForegroundColor Yellow
     }
     Write-Host ""
