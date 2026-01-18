@@ -183,20 +183,43 @@ try {
     Write-Host "    Please follow the on-screen instructions." -ForegroundColor Yellow
     Write-Host ""
 
-    # Find the install.bat file dynamically
-    $installerPath = Get-ChildItem -Path $smapiExtractPath -Filter "install.bat" -Recurse | Select-Object -First 1 -ExpandProperty FullName
+    # Find the install.bat file dynamically - try multiple possible locations
+    $installerPath = $null
+
+    # Look for installer files in common locations
+    $searchPatterns = @(
+        "install on Windows.bat",
+        "install.bat",
+        "internal\windows\install.bat",
+        "windows-install.bat"
+    )
+
+    foreach ($pattern in $searchPatterns) {
+        $testPath = Get-ChildItem -Path $smapiExtractPath -Filter (Split-Path $pattern -Leaf) -Recurse -ErrorAction SilentlyContinue |
+                    Select-Object -First 1
+        if ($testPath) {
+            $installerPath = $testPath.FullName
+            break
+        }
+    }
 
     if (-not $installerPath) {
         Write-Host "    ERROR: Could not find SMAPI installer batch file." -ForegroundColor Red
-        Write-Host "    Expected structure: SMAPI installer/internal/windows/install.bat" -ForegroundColor Yellow
+        Write-Host "    Searching in: $smapiExtractPath" -ForegroundColor Yellow
+        Write-Host "    Directory contents:" -ForegroundColor Yellow
+        Get-ChildItem -Path $smapiExtractPath -Recurse -File | Select-Object -First 20 | ForEach-Object {
+            Write-Host "      $($_.FullName)" -ForegroundColor Gray
+        }
         exit 1
     }
 
     Write-Host "    Found installer at: $installerPath" -ForegroundColor Gray
 
-    # Run the installer
-    Push-Location (Split-Path $installerPath -Parent)
-    & cmd /c "install.bat"
+    # Run the installer (quote the path to handle spaces in filename)
+    $installerDir = Split-Path $installerPath -Parent
+    $installerName = Split-Path $installerPath -Leaf
+    Push-Location $installerDir
+    & cmd /c "`"$installerName`""
     Pop-Location
 
     Write-Host ""
