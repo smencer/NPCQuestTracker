@@ -171,6 +171,14 @@ try {
     try {
         Expand-Archive -Path $smapiZipPath -DestinationPath $smapiExtractPath -Force
         Write-Host "    Extracted SMAPI installer successfully." -ForegroundColor Green
+
+        # The ZIP extracts to a subdirectory like "SMAPI X.X.X installer"
+        # Find that subdirectory
+        $smapiInstallerDir = Get-ChildItem -Path $smapiExtractPath -Directory | Where-Object { $_.Name -like "SMAPI*installer" } | Select-Object -First 1
+        if ($smapiInstallerDir) {
+            $smapiExtractPath = $smapiInstallerDir.FullName
+            Write-Host "    Using installer directory: $($smapiInstallerDir.Name)" -ForegroundColor Gray
+        }
     } catch {
         Write-Host "    ERROR: Failed to extract SMAPI: $_" -ForegroundColor Red
         exit 1
