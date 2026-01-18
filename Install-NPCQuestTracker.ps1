@@ -12,11 +12,42 @@ $ErrorActionPreference = "Stop"
 # Script configuration
 $MOD_NAME = "NPCQuestTracker"
 $SMAPI_REPO = "Pathoschild/SMAPI"
+$MOD_REPO = "smencer/NPCQuestTracker"
 
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host "  NPC Quest Tracker - Installation Script" -ForegroundColor Cyan
 Write-Host "================================================" -ForegroundColor Cyan
 Write-Host ""
+
+# Function to get latest mod release info
+function Get-LatestModRelease {
+    Write-Host "Fetching latest NPC Quest Tracker release..." -ForegroundColor Yellow
+
+    try {
+        $ProgressPreference = 'SilentlyContinue'
+        $apiUrl = "https://api.github.com/repos/$MOD_REPO/releases/latest"
+        $release = Invoke-RestMethod -Uri $apiUrl -UseBasicParsing -Headers @{ "User-Agent" = "NPCQuestTracker-Installer" }
+        $ProgressPreference = 'Continue'
+
+        # Find the mod ZIP asset
+        $modAsset = $release.assets | Where-Object { $_.name -match "$MOD_NAME.*\.zip" } | Select-Object -First 1
+
+        if (-not $modAsset) {
+            throw "Could not find mod ZIP asset in latest release"
+        }
+
+        $version = $release.tag_name -replace '^v', ''
+
+        return @{
+            Version = $version
+            DownloadUrl = $modAsset.browser_download_url
+            ReleaseUrl = $release.html_url
+        }
+    } catch {
+        Write-Host "    WARNING: Could not fetch latest mod release: $_" -ForegroundColor Yellow
+        return $null
+    }
+}
 
 # Function to get latest SMAPI release info
 function Get-LatestSmapiRelease {
@@ -263,20 +294,33 @@ try {
     # Step 4: Download mod
     Write-Host "[4/6] Downloading NPC Quest Tracker mod..." -ForegroundColor Cyan
 
+    # If no URL provided, try to fetch the latest release
     if (-not $ModZipUrl) {
-        Write-Host "    No mod URL provided. Please provide the release ZIP URL using -ModZipUrl parameter." -ForegroundColor Yellow
-        Write-Host "    Example: -ModZipUrl 'https://github.com/youruser/yourrepo/releases/download/v1.0.0/NPCQuestTracker.zip'" -ForegroundColor Yellow
-        $ModZipUrl = Read-Host "    Enter the mod release ZIP URL (or press Enter to skip)"
+        $modRelease = Get-LatestModRelease
 
-        if (-not $ModZipUrl) {
-            Write-Host "    Skipping mod installation. You can manually copy the mod files later." -ForegroundColor Yellow
-            $skipModInstall = $true
+        if ($modRelease) {
+            $ModZipUrl = $modRelease.DownloadUrl
+            Write-Host "    Latest mod version: $($modRelease.Version)" -ForegroundColor Green
+            Write-Host "    Release URL: $($modRelease.ReleaseUrl)" -ForegroundColor Gray
+        } else {
+            Write-Host "    Could not fetch latest release automatically." -ForegroundColor Yellow
+            Write-Host "    You can provide the release ZIP URL using -ModZipUrl parameter." -ForegroundColor Yellow
+            Write-Host "    Example: -ModZipUrl 'https://github.com/smencer/NPCQuestTracker/releases/download/v2.0.0/NPCQuestTracker.2.0.0.zip'" -ForegroundColor Yellow
+            $ModZipUrl = Read-Host "    Enter the mod release ZIP URL (or press Enter to skip)"
+
+            if (-not $ModZipUrl) {
+                Write-Host "    Skipping mod installation. You can manually copy the mod files later." -ForegroundColor Yellow
+                $skipModInstall = $true
+            }
         }
+    } else {
+        Write-Host "    Using provided mod URL: $ModZipUrl" -ForegroundColor Gray
     }
 
     if (-not $skipModInstall) {
         $modZipPath = Join-Path $workDir "NPCQuestTracker.zip"
 
+        Write-Host "    Downloading mod from: $ModZipUrl" -ForegroundColor Cyan
         try {
             $ProgressPreference = 'SilentlyContinue'
             Invoke-WebRequest -Uri $ModZipUrl -OutFile $modZipPath -UseBasicParsing
