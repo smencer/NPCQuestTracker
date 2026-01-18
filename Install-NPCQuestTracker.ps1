@@ -169,8 +169,16 @@ try {
     Write-Host "[2/6] Extracting SMAPI installer..." -ForegroundColor Cyan
     $smapiExtractPath = Join-Path $tempDir "SMAPI"
     try {
+        # Remove destination if it exists to ensure clean extraction
+        if (Test-Path $smapiExtractPath) {
+            Remove-Item -Path $smapiExtractPath -Recurse -Force
+        }
+
         Expand-Archive -Path $smapiZipPath -DestinationPath $smapiExtractPath -Force
         Write-Host "    Extracted SMAPI installer successfully." -ForegroundColor Green
+
+        # Give the filesystem a moment to release file handles
+        Start-Sleep -Milliseconds 500
 
         # The ZIP extracts to a subdirectory like "SMAPI X.X.X installer"
         # Find that subdirectory
@@ -178,6 +186,7 @@ try {
         if ($smapiInstallerDir) {
             $smapiExtractPath = $smapiInstallerDir.FullName
             Write-Host "    Using installer directory: $($smapiInstallerDir.Name)" -ForegroundColor Gray
+            Write-Host "    Full path: $smapiExtractPath" -ForegroundColor Gray
         }
     } catch {
         Write-Host "    ERROR: Failed to extract SMAPI: $_" -ForegroundColor Red
@@ -222,6 +231,13 @@ try {
     }
 
     Write-Host "    Found installer at: $installerPath" -ForegroundColor Gray
+
+    # Verify the file actually exists on disk (not in ZIP)
+    if (-not (Test-Path $installerPath)) {
+        Write-Host "    ERROR: Installer path exists but file is not accessible." -ForegroundColor Red
+        Write-Host "    This might indicate the file is still locked or in a ZIP." -ForegroundColor Yellow
+        exit 1
+    }
 
     # Run the installer (quote the path to handle spaces in filename)
     $installerDir = Split-Path $installerPath -Parent
