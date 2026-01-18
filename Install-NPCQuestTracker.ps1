@@ -242,8 +242,17 @@ try {
     # Run the installer (quote the path to handle spaces in filename)
     $installerDir = Split-Path $installerPath -Parent
     $installerName = Split-Path $installerPath -Leaf
+
+    Write-Host "    Starting installer..." -ForegroundColor Gray
+    Write-Host "    Working directory: $installerDir" -ForegroundColor Gray
+
+    # Change to the installer directory and run the batch file directly
+    # This ensures the installer's checks pass (it looks for specific relative paths)
     Push-Location $installerDir
-    & cmd /c "`"$installerName`""
+
+    # Run directly without cmd /c to avoid path confusion
+    Start-Process -FilePath $installerPath -Wait -NoNewWindow
+
     Pop-Location
 
     Write-Host ""
